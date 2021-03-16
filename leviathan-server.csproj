@@ -6,4 +6,10 @@
     <RootNamespace>leviathan_server</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="leviathan\**" />
+    <EmbeddedResource Remove="leviathan\**" />
+    <None Remove="leviathan\**" />
+  </ItemGroup>
+
 </Project>

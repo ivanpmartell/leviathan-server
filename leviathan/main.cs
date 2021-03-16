@@ -98,10 +98,6 @@ public class main : MonoBehaviour
 			m_msgbox = MsgBox.CreateOkMsgBox(m_guiCamera, "$steam_init_failed ", OnNoSteamOk);
 			return false;
 		}
-		if (!m_gdpBackend.IsBackendOnline())
-		{
-			m_msgbox = MsgBox.CreateOkMsgBox(m_guiCamera, "$steam_offline_mode_only", null);
-		}
 		return true;
 	}
 

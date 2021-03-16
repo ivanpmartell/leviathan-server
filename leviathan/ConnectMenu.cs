@@ -173,15 +173,7 @@ public class ConnectMenu
 		m_nameField.SetCommitDelegate(OnNameEnter);
 		m_passwordField.SetCommitDelegate(OnPwdEnter);
 		m_nameField.Text = PlayerPrefs.GetString("LastUserName");
-		if (m_gdpBackend != null && !m_gdpBackend.IsBackendOnline())
-		{
-			m_loginButton.controlIsEnabled = false;
-			m_nameField.controlIsEnabled = false;
-			m_passwordField.controlIsEnabled = false;
-			uIButton.controlIsEnabled = false;
-			GuiUtils.FindChildOfComponent<UIButton>(m_gui, "CreateNewAccountButton").controlIsEnabled = false;
-			GuiUtils.FindChildOfComponent<UIButton>(m_gui, "ForgottenPasswordButton").controlIsEnabled = false;
-		}
+
 		SetupLanguageButtons();
 	}
 
