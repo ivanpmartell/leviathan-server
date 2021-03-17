@@ -1,15 +1,29 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+	<LangVersion>latest</LangVersion>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <RootNamespace>leviathan_server</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="firstpass\**" />
     <Compile Remove="leviathan\**" />
+    <Compile Remove="restkit\**" />
+    <Compile Remove="unity\**" />
+    <EmbeddedResource Remove="firstpass\**" />
     <EmbeddedResource Remove="leviathan\**" />
+    <EmbeddedResource Remove="restkit\**" />
+    <EmbeddedResource Remove="unity\**" />
+    <None Remove="firstpass\**" />
     <None Remove="leviathan\**" />
+    <None Remove="restkit\**" />
+    <None Remove="unity\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="unity\UnityEngine.csproj" />
   </ItemGroup>
 
 </Project>

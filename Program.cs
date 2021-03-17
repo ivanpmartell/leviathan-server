@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Net.Sockets;
-using System.Net;
+using System.Threading;
 
 namespace leviathan_server
 {
@@ -8,59 +7,38 @@ namespace leviathan_server
     {
         private const int listenPort = 16700;
 
-        private void StartListener()
-        {
-            TcpListener server = null;
-            try
-            {
-                // Set the TcpListener on port intTemp.
-                Int32 intPort = listenPort;
-                IPAddress localAddr = IPAddress.Parse("0.0.0.0");
-                // TcpListener server = new TcpListener(port);
-                server = new TcpListener(localAddr, intPort);
-                // Start listening for client requests.
-                server.Start();
-                // Buffer for reading data
-                Byte[] bytes = new Byte[4096];
-                 
-                String data = null;
-                // Enter the listening loop.
-                while (true)
-                {
-                    Console.WriteLine("Listening on {0}... ", intPort);
-                    TcpClient client = server.AcceptTcpClient(); // server.AcceptSocket() also good
-                    Console.WriteLine("> Connected to {0}", client.Client.RemoteEndPoint);
-                    data = null;
-                    NetworkStream stream = client.GetStream();
-
-                    int intLoop;
-                    while ((intLoop = stream.Read(bytes, 0, bytes.Length)) != 0)
-                    {
-                        // Translate data bytes to a ASCII string.
-                        data = System.Text.Encoding.ASCII.GetString(bytes, 0, intLoop);
-                        Console.WriteLine("Received: {0} from {1}", data, client.Client.RemoteEndPoint);
-                        // Process the data sent by the client.
-                        data = data.ToUpper();
-                        if (data == "Q") return;
-                        byte[] msg = System.Text.Encoding.ASCII.GetBytes(data);
-                        // Send back a response.                        
-                        stream.Write(msg, 0, msg.Length);                        
-                        Console.WriteLine("Sent: {0} to {1}", data, client.Client.RemoteEndPoint);
-                    }
-                    client.Close();
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("SocketException: {0}", e);
-            }
-        }
-
         static void Main(string[] args)
         {
-            Program prog = new Program();
-            prog.StartListener();
+            Thread t = new Thread(delegate ()
+            {
+                Server myserver = new Server("127.0.0.1", listenPort);
+            });
+            t.Start();
+            Console.WriteLine("Server listening on {0}...", listenPort);
         }
+    }
+    public static class Extensions
+    {
+        /// <summary>
+        /// Get the array slice between the two indexes.
+        /// ... Inclusive for start index, exclusive for end index.
+        /// </summary>
+        public static T[] Slice<T>(this T[] source, int start, int end)
+        {
+            // Handles negative ends.
+            if (end < 0)
+            {
+                end = source.Length + end;
+            }
+            int len = end - start;
 
+            // Return new array.
+            T[] res = new T[len];
+            for (int i = 0; i < len; i++)
+            {
+                res[i] = source[i + start];
+            }
+            return res;
+        }
     }
 }

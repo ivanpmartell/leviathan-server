@@ -3,9 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31105.61
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Leviathan", "leviathan\Leviathan.csproj", "{4C9383FE-17ED-4A5E-A4EF-115A43FBE0D7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "client", "leviathan\client.csproj", "{4C9383FE-17ED-4A5E-A4EF-115A43FBE0D7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "leviathan-server", "leviathan-server.csproj", "{2F8A0D76-B4E8-41B8-A6E9-8135BD9CB1B0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnityEngine", "unity\UnityEngine.csproj", "{841881DA-AF32-4DAE-8FB1-834006E37C60}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "P31RestKit", "restkit\P31RestKit.csproj", "{F96D7473-C3B1-4A96-BBA5-25E339DA7145}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +25,14 @@ Global
 		{2F8A0D76-B4E8-41B8-A6E9-8135BD9CB1B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F8A0D76-B4E8-41B8-A6E9-8135BD9CB1B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F8A0D76-B4E8-41B8-A6E9-8135BD9CB1B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{841881DA-AF32-4DAE-8FB1-834006E37C60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{841881DA-AF32-4DAE-8FB1-834006E37C60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{841881DA-AF32-4DAE-8FB1-834006E37C60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{841881DA-AF32-4DAE-8FB1-834006E37C60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F96D7473-C3B1-4A96-BBA5-25E339DA7145}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F96D7473-C3B1-4A96-BBA5-25E339DA7145}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F96D7473-C3B1-4A96-BBA5-25E339DA7145}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F96D7473-C3B1-4A96-BBA5-25E339DA7145}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
