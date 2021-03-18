@@ -89,14 +89,14 @@ namespace leviathan_server
 						}
 					}
 				}
-				catch (Exception ex)
-				{
-					Console.WriteLine("Exception: {0}", ex.ToString());
+				catch (EndOfStreamException){
+					Console.WriteLine("Client Disconnected.");
 					client.Close();
 					break;
 				}
-				catch (EndOfStreamException){
-					Console.WriteLine("Client Disconnected.");
+				catch (Exception ex)
+				{
+					Console.WriteLine("Exception: {0}", ex.ToString());
 					client.Close();
 					break;
 				}
