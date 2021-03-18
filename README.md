@@ -12,7 +12,9 @@ Then I added it to the PATH.
 
 To run use ```dotnet run```
 
-To build dll use ```dotnet publish -c Release -r linux-x64 --self-contained```
+To build dll use ```dotnet build leviathan-server.csproj```
+
+To build release dll use ```dotnet publish leviathan-server.csproj -c Release -r linux-x64 --self-contained```
 
 If you are just running the program on a server, use the complete published folder (removing the .pdb file):
 
