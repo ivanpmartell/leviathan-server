@@ -18,7 +18,7 @@ namespace leviathan_server
         {
 			dic = new Dictionary<Guid, Delegate>
 			{
-				{ GenerateGuid("Login"), new Func<NetworkStream, object[], bool>(Login) }
+				{ GenerateGuid("Login"), new Func<object[], byte[]>(Login) }
 			};
 
 			IPAddress localAddr = IPAddress.Parse(ip);
@@ -49,83 +49,88 @@ namespace leviathan_server
 		public void HandleDevice(Object obj)
         {
             TcpClient client = (TcpClient)obj;
-            NetworkStream stream = client.GetStream();
-
-			Byte[] bytes = new Byte[256];
-			int i;
-			try
+			while(true)
 			{
-				while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
+				NetworkStream stream = client.GetStream();
+				try
 				{
-					using (MemoryStream input = new MemoryStream(bytes))
-                    {
-						using (BinaryReader r = new BinaryReader(input))
-                        {
-
-							var flag = (int)r.ReadByte();
-							Retry:
-							if (flag == 1)
+					using (BinaryReader r = new BinaryReader(stream, Encoding.Default, true))
+					{
+						var length = r.ReadInt32();
+						Console.WriteLine("Received {0} bytes from client.", length);
+						var flag = (int)r.ReadByte();
+						if (flag == 1 && length > 15)
+						{
+							var guid_b = r.ReadBytes(16);
+							var guid = new Guid(guid_b);
+							var args_l = (int)r.ReadChar();
+							var args = new List<object>();
+							for (var j = 0; j < args_l; j++)
 							{
-								var guid_b = r.ReadBytes(16);
-								var guid = new Guid(guid_b);
-								var args_l = (int)r.ReadChar();
-								var args = new List<object>();
-								for (var j = 0; j < args_l; j++)
-								{
-									Deserialize(r, args);
-								}
-                                //Call guid method with args
-                                //This method will reply to registered methods
-                                try
-                                {
-									dic[guid].DynamicInvoke(stream, args.ToArray());
-									Console.WriteLine("Received {0} invocation", guid.ToString());
-								}
-								catch(KeyNotFoundException)
-                                {
-									Console.WriteLine("Method not found for guid {0}", guid.ToString());
-									flag = 2;
-									goto Retry;
-                                }
-								//Console.WriteLine("{1}: Received: {0}", flag.ToString() + "," + guid.ToString() + args_s, Thread.CurrentThread.ManagedThreadId);
+								Deserialize(r, args);
 							}
-                            else
-                            {
-								SendACK(stream);
+							//Call guid method with args
+							//This method will reply to registered methods
+							try
+							{
+								byte[] response = (byte[])dic[guid].DynamicInvoke((object)args.ToArray());
+								Send(stream, response);
+								Console.WriteLine("Sent message: {0}", BitConverter.ToString(response));
 							}
+							catch(KeyNotFoundException)
+							{
+								Console.WriteLine("Method not found for guid {0}", guid.ToString());
+							}
+						}
+						else if(flag == 2)
+						{
+							byte[] response = Ping();
+							Send(stream, response);
 						}
 					}
 				}
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine("Exception: {0}", e.ToString());
-				client.Close();
+				catch (Exception ex)
+				{
+					Console.WriteLine("Exception: {0}", ex.ToString());
+					client.Close();
+					break;
+				}
+				catch (EndOfStreamException){
+					Console.WriteLine("Client Disconnected.");
+					client.Close();
+					break;
+				}
+				Thread.Sleep(10);
 			}
         }
 
-		private bool Login(NetworkStream stream, params object[] args)
-        {
-			var guid = GenerateGuid("LoginOK");
-			Invoke(stream, guid, true);
-			return true;
-        }
-
-		private void SendACK(NetworkStream stream)
-        {
-			byte[] bytes = BitConverter.GetBytes(2);
-			stream.Write(bytes, 0, bytes.Length);
-			Console.WriteLine("{0}: Sent ACK", Thread.CurrentThread.ManagedThreadId);
+		private void Send(NetworkStream stream, byte[] message)
+		{
+			stream.Write(message, 0, message.Length);
 		}
 
-		public void Invoke(NetworkStream stream, Guid method, params object[] args)
+		private byte[] Login(object[] args)
+        {
+			var guid = GenerateGuid("LoginOK");
+            Console.WriteLine(guid.ToString());
+			return Invoke(guid);
+        }
+
+		private byte[] Ping()
+        {
+            MemoryStream memoryStream = new MemoryStream();
+            byte[] length = BitConverter.GetBytes(1);
+            memoryStream.Write(length, 0, length.Length);
+            memoryStream.WriteByte(2);
+            byte[] byteData = memoryStream.ToArray();
+            Console.WriteLine("Sending ping: {0}", BitConverter.ToString(byteData));
+            return byteData;
+        }
+
+		private byte[] Invoke(Guid method, params object[] args)
 		{
-			MemoryStream memoryStream = new MemoryStream();
-			BinaryWriter binaryWriter = new BinaryWriter(memoryStream);
-			memoryStream.WriteByte(1);
-			byte[] array = method.ToByteArray();
-			memoryStream.Write(array, 0, array.Length);
-			binaryWriter.Write((char)args.Length);
+			MemoryStream memoryStream2 = new MemoryStream();
+			BinaryWriter binaryWriter = new BinaryWriter(memoryStream2);
 			int num = 0;
 			foreach (object data in args)
 			{
@@ -141,8 +146,21 @@ namespace leviathan_server
 				}
 				num++;
 			}
-			var message = memoryStream.ToArray();
-			stream.Write(message, 0, message.Length);
+            MemoryStream memoryStream = new MemoryStream();
+            Console.WriteLine("Current stream: {0}, Args: {1}", BitConverter.ToString(memoryStream.ToArray()), binaryWriter.BaseStream.Length);
+            byte[] length = BitConverter.GetBytes((int)binaryWriter.BaseStream.Length + 16 + 1 + 2);
+            memoryStream.Write(length, 0, length.Length);
+            Console.WriteLine("Length: {0}", BitConverter.ToString(length));
+            memoryStream.WriteByte(1);
+			byte[] array = method.ToByteArray();
+			memoryStream.Write(array, 0, array.Length);
+            Console.WriteLine("current stream: {0}", BitConverter.ToString(memoryStream.ToArray()));
+            byte[] arguments_len = BitConverter.GetBytes((char)args.Length);
+            memoryStream.Write(arguments_len, 0, arguments_len.Length);
+            Console.WriteLine("Current stream: {0}, Args: {1}, Char Representation:{2}", BitConverter.ToString(memoryStream.ToArray()), args.Length, arguments_len.Length);
+            byte[] arguments = memoryStream2.ToArray();
+            memoryStream.Write(arguments, 0, arguments.Length);
+            return memoryStream.ToArray();
 		}
 
 		private Guid GenerateGuid(string name)
@@ -269,7 +287,9 @@ namespace leviathan_server
 
 		private void Deserialize(BinaryReader reader, List<object> args)
 		{
-			Type type = (Type)reader.ReadChar();
+			var type_c = reader.ReadChar();
+			Console.WriteLine(type_c);
+			Type type = (Type)type_c;
 			switch (type)
 			{
 				case Type.Int:
