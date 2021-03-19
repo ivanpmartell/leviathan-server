@@ -11,9 +11,10 @@ namespace leviathan_server
 
         static void Main(string[] args)
         {
+            Database db = new Database();
             Thread t = new Thread(delegate ()
             {
-                Server myserver = new Server("127.0.0.1", listenPort);
+                Server myserver = new Server("127.0.0.1", listenPort, db);
             });
             t.Start();
             Console.WriteLine("Server listening on {0}...", listenPort);

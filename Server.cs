@@ -5,22 +5,25 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Security.Cryptography;
 
 namespace leviathan_server
 {
     class Server
     {
+		Database db;
         TcpListener server = null;
 		Dictionary<Guid, Delegate> dic;
 
-		public Server(string ip, int port)
+		public Server(string ip, int port, Database database)
         {
 			dic = new Dictionary<Guid, Delegate>
 			{
-				{ GenerateGuid("Login"), new Func<object[], byte[]>(Login) }
+				{ GenerateGuid("Login"), new Func<object[], Task<byte[]>>(Login) },
+				{ GenerateGuid("CreateAccount"), new Func<object[], Task<byte[]>>(CreateAccount) }
 			};
-
+			db = database;
 			IPAddress localAddr = IPAddress.Parse(ip);
             server = new TcpListener(localAddr, port);
             server.Start();
@@ -46,7 +49,7 @@ namespace leviathan_server
 			}
         }
 
-		public void HandleDevice(Object obj)
+		public async void HandleDevice(Object obj)
         {
             TcpClient client = (TcpClient)obj;
 			while(true)
@@ -73,7 +76,7 @@ namespace leviathan_server
 							//This method will reply to registered methods
 							try
 							{
-								byte[] response = (byte[])dic[guid].DynamicInvoke((object)args.ToArray());
+								byte[] response = await (Task<byte[]>)dic[guid].DynamicInvoke((object)args.ToArray());
 								Send(stream, response);
 								Console.WriteLine("Sent message: {0}", BitConverter.ToString(response));
 							}
@@ -109,12 +112,34 @@ namespace leviathan_server
 			stream.Write(message, 0, message.Length);
 		}
 
-		private byte[] Login(object[] args)
+		private async Task<byte[]> Login(object[] args)
         {
+			//LoginOK,LoginFail,JoinOK,JoinFail
 			var guid = GenerateGuid("LoginOK");
-            Console.WriteLine(guid.ToString());
 			return Invoke(guid);
         }
+
+		private async Task<byte[]> CreateAccount(object[] args)
+		{
+			//CreateSuccess,CreateFail
+			//Check patron email
+			var user = (string)args[0];
+			var pass = (string)args[1];
+			var email = (string)args[2];
+			var version = (string)args[3];
+			var lang = (string)args[4];
+			var collection = db.leviathan.GetCollection<User>("users");
+			await collection.InsertOneAsync(
+				new User { 
+					Username = user,
+					Password = pass,
+					Email = email,
+					Version = version,
+					Language = lang});
+			Console.WriteLine("Created User");
+			var guid = GenerateGuid("CreateSuccess");
+			return Invoke(guid);
+		}
 
 		private byte[] Ping()
         {
