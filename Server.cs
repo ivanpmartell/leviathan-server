@@ -6,24 +6,16 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Security.Cryptography;
 
 namespace leviathan_server
 {
     class Server
     {
 		Database db;
-
         TcpListener server = null;
-		Dictionary<Guid, Delegate> dic;
 
 		public Server(string ip, int port, Database database)
         {
-			dic = new Dictionary<Guid, Delegate>
-			{
-				{ GenerateGuid("Login"), new Func<object[], Task<byte[]>>(Login) },
-				{ GenerateGuid("CreateAccount"), new Func<object[], Task<byte[]>>(CreateAccount) }
-			};
 			db = database;
 			IPAddress localAddr = IPAddress.Parse(ip);
             server = new TcpListener(localAddr, port);
@@ -53,6 +45,7 @@ namespace leviathan_server
 		public async void HandleDevice(Object obj)
         {
             TcpClient client = (TcpClient)obj;
+			ServerState state = new ServerState(this);
 			while(true)
 			{
 				NetworkStream stream = client.GetStream();
@@ -77,7 +70,7 @@ namespace leviathan_server
 							//This method will reply to registered methods
 							try
 							{
-								byte[] response = await (Task<byte[]>)dic[guid].DynamicInvoke((object)args.ToArray());
+								byte[] response = await (Task<byte[]>)state.invoke[guid].DynamicInvoke(state, (object)args.ToArray());
 								Send(stream, response);
 								Console.WriteLine("Sent message: {0}", BitConverter.ToString(response));
 							}
@@ -113,9 +106,10 @@ namespace leviathan_server
 			stream.Write(message, 0, message.Length);
 		}
 
-		private async Task<byte[]> Login(object[] args)
+		internal async Task<byte[]> Login(ServerState state, object[] args)
         {
 			//LoginOK,LoginFail,JoinOK,JoinFail
+			state.AddLoggedInInvocations();
 			Guid guid;
 			var user = ((string)args[0]).ToLower();
 			var pass = (string)args[1];
@@ -128,20 +122,20 @@ namespace leviathan_server
 				var doc = await db.UserLogin(user, pass);
 				if (doc != null)
 					//TODO: check token for validated users
-					guid = GenerateGuid("LoginOK");
+					guid = Utils.GenerateGuid("LoginOK");
 				else
-					guid = GenerateGuid("LoginFail");
+					guid = Utils.GenerateGuid("LoginFail");
 			}
 			catch (Exception ex)
 			{
 				Console.WriteLine(ex);
-				guid = GenerateGuid("LoginFail");
+				guid = Utils.GenerateGuid("LoginFail");
 			}
 
 			return Invoke(guid);
         }
 
-		private async Task<byte[]> CreateAccount(object[] args)
+		internal async Task<byte[]> CreateAccount(ServerState state, object[] args)
 		{
 			//CreateSuccess,CreateFail
 			//Check patron email
@@ -154,14 +148,39 @@ namespace leviathan_server
 			try
 			{
 				await db.CreateUser(user, pass, email);
-				guid = GenerateGuid("CreateSuccess");
+				guid = Utils.GenerateGuid("CreateSuccess");
 				//TODO:Send SMTP verification email
 			}
 			catch(Exception)
 			{
-				guid = GenerateGuid("CreateFail");
+				guid = Utils.GenerateGuid("CreateFail");
 			}
 			return Invoke(guid);
+		}
+
+		internal async Task<byte[]> RequestVerificationEmail(ServerState state, object[] args)
+		{
+			throw new Exception("TODO");
+		}
+
+		internal async Task<byte[]> Join(ServerState state, object[] args)
+		{
+			throw new Exception("TODO");
+		}
+
+		internal async Task<byte[]> WatchReplay(ServerState state, object[] args)
+		{
+			throw new Exception("TODO");
+		}
+
+		internal async Task<byte[]> RequestPasswordReset(ServerState state, object[] args)
+		{
+			throw new Exception("TODO");
+		}
+
+		internal async Task<byte[]> ResetPassword(ServerState state, object[] args)
+		{
+			throw new Exception("TODO");
 		}
 
 		private byte[] Ping()
@@ -209,14 +228,6 @@ namespace leviathan_server
             byte[] arguments = memoryStream2.ToArray();
             memoryStream.Write(arguments, 0, arguments.Length);
             return memoryStream.ToArray();
-		}
-
-		private Guid GenerateGuid(string name)
-		{
-			//Discarded unreachable code: IL_0027
-			using MD5 mD = MD5.Create();
-			byte[] b = mD.ComputeHash(Encoding.Default.GetBytes(name));
-			return new Guid(b);
 		}
 
 		private void Serialize(BinaryWriter writer, object data)
@@ -425,47 +436,6 @@ namespace leviathan_server
 				default:
 					throw new Exception("Unhandled type " + type);
 			}
-		}
-
-		private enum Type
-		{
-			Int,
-			Bool,
-			Float,
-			Double,
-			String,
-			ByteArray,
-			FloatArray,
-			DoubleArray,
-			StringIntDic,
-			Long,
-			StringArray,
-			IntArray
-		}
-
-		public enum ErrorCode
-		{
-			WrongUserPassword,
-			UserNotVerified,
-			InvalidVerificationToken,
-			VersionMissmatch,
-			AccountExist,
-			ServerFull,
-			FriendUserDoesNotExist,
-			AlreadyFriend,
-			UserAlreadyVerified,
-			AccountDoesNotExist,
-			NoError
-		}
-
-		public enum PlatformType
-		{
-			None,
-			WindowsPC,
-			Ios,
-			Android,
-			Osx,
-			Other
 		}
 	}
 }
