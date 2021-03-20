@@ -13,6 +13,7 @@ namespace leviathan_server
     class Server
     {
 		Database db;
+
         TcpListener server = null;
 		Dictionary<Guid, Delegate> dic;
 
@@ -115,7 +116,28 @@ namespace leviathan_server
 		private async Task<byte[]> Login(object[] args)
         {
 			//LoginOK,LoginFail,JoinOK,JoinFail
-			var guid = GenerateGuid("LoginOK");
+			Guid guid;
+			var user = ((string)args[0]).ToLower();
+			var pass = (string)args[1];
+			var token = (string)args[2];
+			var version = (string)args[3];
+			var platform = (int)args[4];
+			var lang = (string)args[5];
+			try
+			{
+				var doc = await db.UserLogin(user, pass);
+				if (doc != null)
+					//TODO: check token for validated users
+					guid = GenerateGuid("LoginOK");
+				else
+					guid = GenerateGuid("LoginFail");
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex);
+				guid = GenerateGuid("LoginFail");
+			}
+
 			return Invoke(guid);
         }
 
@@ -123,21 +145,22 @@ namespace leviathan_server
 		{
 			//CreateSuccess,CreateFail
 			//Check patron email
-			var user = (string)args[0];
+			Guid guid;
+			var user = ((string)args[0]).ToLower();
 			var pass = (string)args[1];
-			var email = (string)args[2];
+			var email = ((string)args[2]).ToLower();
 			var version = (string)args[3];
 			var lang = (string)args[4];
-			var collection = db.leviathan.GetCollection<User>("users");
-			await collection.InsertOneAsync(
-				new User { 
-					Username = user,
-					Password = pass,
-					Email = email,
-					Version = version,
-					Language = lang});
-			Console.WriteLine("Created User");
-			var guid = GenerateGuid("CreateSuccess");
+			try
+			{
+				await db.CreateUser(user, pass, email);
+				guid = GenerateGuid("CreateSuccess");
+				//TODO:Send SMTP verification email
+			}
+			catch(Exception)
+			{
+				guid = GenerateGuid("CreateFail");
+			}
 			return Invoke(guid);
 		}
 
@@ -418,6 +441,31 @@ namespace leviathan_server
 			Long,
 			StringArray,
 			IntArray
+		}
+
+		public enum ErrorCode
+		{
+			WrongUserPassword,
+			UserNotVerified,
+			InvalidVerificationToken,
+			VersionMissmatch,
+			AccountExist,
+			ServerFull,
+			FriendUserDoesNotExist,
+			AlreadyFriend,
+			UserAlreadyVerified,
+			AccountDoesNotExist,
+			NoError
+		}
+
+		public enum PlatformType
+		{
+			None,
+			WindowsPC,
+			Ios,
+			Android,
+			Osx,
+			Other
 		}
 	}
 }
